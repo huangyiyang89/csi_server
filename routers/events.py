@@ -47,7 +47,7 @@ def get_live_events(
         all_events.extend(events)
     return all_events
 
-@router.get("/gen")
+@router.get("/generate_test_data")
 def generate_random_events(*, count: int = 5,session: Session = Depends(get_session)):
     cameras: list[Camera] = session.exec(select(Camera)).all()  
     for camera in cameras:
