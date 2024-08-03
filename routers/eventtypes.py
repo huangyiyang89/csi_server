@@ -5,9 +5,8 @@ from models.eventtype import EventType
 
 
 router = APIRouter(
-    prefix="/eventtypes",
-    tags=["eventtypes"],
-    responses={404: {"description": "Not found"}},
+    prefix="/api/eventtypes",
+    tags=["eventtypes"]
 )
 
 

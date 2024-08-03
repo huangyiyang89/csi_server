@@ -1,6 +1,4 @@
-from sqlmodel import SQLModel, Field, Relationship
-from typing import TYPE_CHECKING
-
+from sqlmodel import SQLModel, Field
 
 class EventType(SQLModel, table=True):
     id: str = Field(primary_key=True, index=True)

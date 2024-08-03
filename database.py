@@ -1,5 +1,4 @@
 from sqlmodel import SQLModel, create_engine, Session, select
-
 from models.eventtype import EventType
 from models.user import User
 from typing import Generator

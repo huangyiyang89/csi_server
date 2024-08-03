@@ -8,7 +8,7 @@ def test_login_success():
         "password": "admin"
     }
     # 执行登录方法
-    response = client.post("/login", json=request_data)
+    response = client.post("/api/users/login", json=request_data)
     # 断言登录成功的响应
     assert response.json() == {"message": "登录成功"} and response.status_code == 200
 
@@ -21,6 +21,6 @@ def test_login_failure():
         "password": "wrong_password"
     }
     # 执行登录方法
-    response = client.post("/login", json=request_data)
+    response = client.post("/api/users/login", json=request_data)
     # 断言登录失败的响应
     assert response.json() == {"detail": "用户名或密码错误"} and response.status_code == 401

@@ -4,7 +4,7 @@ from database import get_session
 from models.eventtype import EventType
 from models.user import User
 
-router = APIRouter()
+router = APIRouter(prefix="/api/users",tags=["users"])
 
 class LoginRequest(SQLModel):
     username: str
