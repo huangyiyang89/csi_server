@@ -16,7 +16,7 @@ from routers.cameras import router as cameras_router
 from asyncio.windows_events import ProactorEventLoop
 
 class ProactorServer(uvicorn.Server):
-    def run(self, sockets=8001):
+    def run(self, sockets=None):
         loop = ProactorEventLoop()
         asyncio.set_event_loop(loop)
         asyncio.run(self.serve(sockets=sockets))
@@ -61,6 +61,6 @@ async def serve_react_app(request: Request, full_path: str):
 if __name__ == "__main__":
     #uvicorn.run(app, host="0.0.0.0", port=8001)
     #启用proactor loop
-    config = uvicorn.Config(app=app, host="0.0.0.0", port=8001, reload=False)
+    config = uvicorn.Config(app=app, host="0.0.0.0", port=8000, reload=False)
     server = ProactorServer(config=config)
     server.run()
