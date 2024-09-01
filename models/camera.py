@@ -11,11 +11,18 @@ class CameraBase(SQLModel):
     name: str
     ip_addr: str
     mac: str
+    brand:str
     frame_width: int
     frame_height: int
     description: str | None = ""
     state: int | None = 0
     timestamp: int | None = int(time.time())
+    nvr_mac:str | None = None
+    nvr_ip:str | None = None
+    channel: str | None = None
+    
+
+    @computed_field
 
     @computed_field
     @property
@@ -39,6 +46,7 @@ class CameraUpdate(SQLModel):
     name: str | None = None
     ip_addr: str | None = None
     mac: str | None = None
+    channel: str | None = None
     description: str | None = None
     frame_height: int | None = None
     frame_width: int | None = None

@@ -55,17 +55,12 @@ def generate_random_events(*, count: int = 5,session: Session = Depends(get_sess
             t = int(time.time()) - random.randint(0, 86400) * i
             a = "区域" + str(random.randint(1, count))
             ran_eventtype_id = random.choice(
-                [
-                    "1201",
-                    "1202",
-                    "1401",
-                    "1501",
-                    "2101",
-                    "2102",
-                    "3101",
-                    "1402",
-                    "1502",
-                    "1311",
+                [   
+                    "1001",
+                    "1002",
+                    "1003",
+                    "1004",
+                    "1005",
                 ]
             )
             new_event = Event(
@@ -74,7 +69,7 @@ def generate_random_events(*, count: int = 5,session: Session = Depends(get_sess
                 eventtype_id=ran_eventtype_id,
                 timestamp=t,
                 image_url="images/event" + str(random.randint(1, 4)) + ".jpg",
-                uploaded=True,
+                uploaded=random.choice([True, False]),
             )
             session.add(new_event)
     session.commit()
