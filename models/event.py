@@ -2,9 +2,11 @@ import time
 from sqlmodel import SQLModel, Field, Relationship
 from pydantic import computed_field
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from models.camera import Camera
     from models.eventtype import EventType
+
 
 class EventBase(SQLModel):
     area_name: str | None = None
@@ -22,6 +24,7 @@ class EventBase(SQLModel):
         )
         return local_time_str
 
+
 class Event(EventBase, table=True):
     id: int = Field(primary_key=True)
     camera: "Camera" = Relationship(back_populates="events")
@@ -30,9 +33,6 @@ class Event(EventBase, table=True):
 
 class EventCreate(EventBase):
     pass
-
-
-
 
 
 class EventUpdate(SQLModel):

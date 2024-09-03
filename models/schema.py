@@ -3,6 +3,7 @@ from models.area import AreaBase
 from models.algoparam  import AlgoParamBase
 from models.event import EventBase
 from models.eventtype import EventType
+from models.nvr import Nvr
 
 class CameraPublic(CameraBase):
     id: int
@@ -24,5 +25,6 @@ class EventPublic(EventBase):
     eventtype: EventType | None = None
 
 class CameraWithDatas(CameraPublic):
+    nvr: Nvr | None = None
     areas: list[AreaWithDatas] | None = []
     events: list[EventPublic] | None = []

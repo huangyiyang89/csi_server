@@ -1,6 +1,8 @@
 import uvicorn
 import os
 import asyncio
+import util
+import config
 from apscheduler.schedulers.background import BackgroundScheduler
 from database import create_db_and_tables
 from fastapi import FastAPI, Request
@@ -14,6 +16,7 @@ from routers.algoparams import router as algoparams_router
 from routers.events import router as events_router
 from routers.areas import router as areas_router
 from routers.cameras import router as cameras_router
+from routers.nvrs import router as nvrs_router
 from asyncio.windows_events import ProactorEventLoop
 
 
@@ -26,25 +29,36 @@ class ProactorServer(uvicorn.Server):
 
 def status_task():
     """10分钟执行一次"""
-    print("---------------------status_task triggered---------------------")
-    from platform_service import upload_status, upload_events
+    from task import upload_status, upload_events
     upload_status()
-    print()
     upload_events()
-    print()
- 
-    
 
 
 def message_task():
     """10秒钟执行一次"""
-    print("---------------------message_task triggered---------------------")
-    from platform_service import get_tasks
+    from task import get_tasks
     tasks = get_tasks()
-    for task in tasks:
-        pass
-    print()
-    
+
+    try:
+        for task in tasks:
+            if task["action"] == "reboot":
+                util.reboot()
+            if task["action"] == "web":
+                params = task['params']
+                host = params["host"]
+                port = params["port"]
+                timeout = params["timeout"]
+                util.start_ssh_process(host, port,80,config.ssh_username,config.ssh_password,timeout=timeout)
+            if task["action"] == "ssh":
+                params = task['params']
+                host = params["host"]
+                port = params["port"]
+                timeout = params["timeout"]
+                util.start_ssh_process(host, port,22,config.ssh_username,config.ssh_password,timeout=timeout)
+            if task["action"] == "video":
+                pass
+    except Exception as e:
+        print("Run task error:",e)
 
 
 
@@ -78,6 +92,7 @@ app.include_router(algoparams_router)
 app.include_router(events_router)
 app.include_router(areas_router)
 app.include_router(cameras_router)
+app.include_router(nvrs_router)
 
 app.mount("/frontend", StaticFiles(directory="frontend", html=True), name="frontend")
 
@@ -92,8 +107,9 @@ async def serve_react_app(request: Request, full_path: str):
 
 
 if __name__ == "__main__":
-    # uvicorn.run(app, host="0.0.0.0", port=8001)
-    # 启用proactor loop
-    config = uvicorn.Config(app=app, host="0.0.0.0", port=8000, reload=False)
-    server = ProactorServer(config=config)
-    server.run()
+    uvicorn.run(app, host="0.0.0.0", port=config.serve_port)
+
+    # 启用proactor loop  websocket推流使用
+    # config = uvicorn.Config(app=app, host="0.0.0.0", port=config.serve_port, reload=False)
+    # server = ProactorServer(config=config)
+    # server.run()
