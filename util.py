@@ -4,9 +4,7 @@ import time
 import psutil
 import random
 import socket
-import telnetlib
 import asyncio
-from scapy.layers.l2 import ARP, Ether, srp
 from paramiko import SSHClient, AutoAddPolicy
 from multiprocessing import Process
 
@@ -50,27 +48,27 @@ def get_uptime():
         return 0
 
 
-def get_mac(ip):
+# def get_mac(ip):
 
-    arp = ARP(pdst=ip)
-    ether = Ether(dst="ff:ff:ff:ff:ff:ff")
-    packet = ether / arp
-    result = srp(packet, timeout=3, verbose=False)[0]
-    if len(result) > 0:
-        return result[0][1].hwsrc.lower()
-    else:
-        return None
+#     arp = ARP(pdst=ip)
+#     ether = Ether(dst="ff:ff:ff:ff:ff:ff")
+#     packet = ether / arp
+#     result = srp(packet, timeout=3, verbose=False)[0]
+#     if len(result) > 0:
+#         return result[0][1].hwsrc.lower()
+#     else:
+#         return None
 
 
-def scan_network():
-    arp = ARP(pdst="192.168.0.1/24")
-    ether = Ether(dst="ff:ff:ff:ff:ff:ff")
-    packet = ether / arp
-    result = srp(packet, timeout=3, verbose=0)[0]
-    devices = []
-    for sent, received in result:
-        devices.append({"ip": received.psrc, "mac": received.hwsrc})
-    return devices
+# def scan_network():
+#     arp = ARP(pdst="192.168.0.1/24")
+#     ether = Ether(dst="ff:ff:ff:ff:ff:ff")
+#     packet = ether / arp
+#     result = srp(packet, timeout=3, verbose=0)[0]
+#     devices = []
+#     for sent, received in result:
+#         devices.append({"ip": received.psrc, "mac": received.hwsrc})
+#     return devices
 
 
 def get_local_mac():
