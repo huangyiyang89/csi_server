@@ -28,3 +28,4 @@ class CameraWithDatas(CameraPublic):
     nvr: Nvr | None = None
     areas: list[AreaWithDatas] | None = []
     events: list[EventPublic] | None = []
+    live_url: str | None = None

@@ -5,9 +5,12 @@ import psutil
 import random
 import socket
 import telnetlib
+import asyncio
 from scapy.layers.l2 import ARP, Ether, srp
 from paramiko import SSHClient, AutoAddPolicy
 from multiprocessing import Process
+
+
 
 def now():
     return time.strftime(r"%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
@@ -54,7 +57,7 @@ def get_mac(ip):
     packet = ether / arp
     result = srp(packet, timeout=3, verbose=False)[0]
     if len(result) > 0:
-        return result[0][1].hwsrc
+        return result[0][1].hwsrc.lower()
     else:
         return None
 
@@ -73,22 +76,25 @@ def scan_network():
 def get_local_mac():
     nics = psutil.net_if_addrs()
     for nic_name, nic_addrs in nics.items():
-        for addr in nic_addrs:
-            if addr.family == psutil.AF_LINK:
-                mac = addr.address
-                return mac.replace("-", ":")
-    return None
+        #if "eth" in nic_name or "en" in nic_name:
+            for addr in nic_addrs:
+                if addr.family == psutil.AF_LINK:
+                    mac = addr.address
+                    return mac.replace("-", ":").lower()
+    print("获取本机mac地址失败！")
+    return "ff:ff:ff:ff:ff:ff"
 
 
-def check_status(ip, port=80):
-    """telnet test ip status"""
-    try:
-        tn = telnetlib.Telnet(ip, port, timeout=1)
-        tn.close()
-        return "1"
-    except:
-        return "0"
-    
+async def check_status(ip, port=80, timeout=0.1):
+    loop = asyncio.get_event_loop()
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.setblocking(False)
+        try:
+            await asyncio.wait_for(loop.sock_connect(sock, (ip, port)), timeout)
+            return 1
+        except (OSError, asyncio.TimeoutError):
+            return 0
+
 
 def reboot():
     try:
@@ -103,14 +109,16 @@ def reboot():
         print(f"Restart error: {e}")
 
 
-def ssh_port_forwarding(remote_ip, remote_port, local_port, username, password,timeout):
+def ssh_port_forwarding(
+    remote_ip, remote_port, local_port, username, password, timeout
+):
     try:
         client = SSHClient()
         client.set_missing_host_key_policy(AutoAddPolicy())
         client.connect(remote_ip, port=22, username=username, password=password)
-        
+
         transport = client.get_transport()
-        transport.request_port_forward('', local_port, remote_ip, remote_port)
+        transport.request_port_forward("", local_port, remote_ip, remote_port)
 
         print(f"SSH forwarding {remote_ip}:{remote_port} to local:{local_port} success")
 
@@ -125,7 +133,11 @@ def ssh_port_forwarding(remote_ip, remote_port, local_port, username, password,t
     finally:
         client.close()
 
-def start_ssh_process(remote_ip, remote_port, local_port, username, password,timeout):
-    process = Process(target=ssh_port_forwarding, args=(remote_ip, remote_port, local_port, username, password,timeout))
+
+def start_ssh_process(remote_ip, remote_port, local_port, username, password, timeout):
+    process = Process(
+        target=ssh_port_forwarding,
+        args=(remote_ip, remote_port, local_port, username, password, timeout),
+    )
     process.start()
     return process

@@ -1,6 +1,5 @@
 import uvicorn
 import os
-import asyncio
 import util
 import config
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -17,19 +16,13 @@ from routers.events import router as events_router
 from routers.areas import router as areas_router
 from routers.cameras import router as cameras_router
 from routers.nvrs import router as nvrs_router
-from asyncio.windows_events import ProactorEventLoop
-
-
-class ProactorServer(uvicorn.Server):
-    def run(self, sockets=None):
-        loop = ProactorEventLoop()
-        asyncio.set_event_loop(loop)
-        asyncio.run(self.serve(sockets=sockets))
+from routers.status import router as status_router
 
 
 def status_task():
     """10分钟执行一次"""
     from task import upload_status, upload_events
+
     upload_status()
     upload_events()
 
@@ -37,6 +30,7 @@ def status_task():
 def message_task():
     """10秒钟执行一次"""
     from task import get_tasks
+
     tasks = get_tasks()
 
     try:
@@ -44,22 +38,35 @@ def message_task():
             if task["action"] == "reboot":
                 util.reboot()
             if task["action"] == "web":
-                params = task['params']
+                params = task["params"]
                 host = params["host"]
                 port = params["port"]
                 timeout = params["timeout"]
-                util.start_ssh_process(host, port,80,config.ssh_username,config.ssh_password,timeout=timeout)
+                util.start_ssh_process(
+                    host,
+                    port,
+                    80,
+                    config.ssh_username,
+                    config.ssh_password,
+                    timeout=timeout,
+                )
             if task["action"] == "ssh":
-                params = task['params']
+                params = task["params"]
                 host = params["host"]
                 port = params["port"]
                 timeout = params["timeout"]
-                util.start_ssh_process(host, port,22,config.ssh_username,config.ssh_password,timeout=timeout)
+                util.start_ssh_process(
+                    host,
+                    port,
+                    22,
+                    config.ssh_username,
+                    config.ssh_password,
+                    timeout=timeout,
+                )
             if task["action"] == "video":
                 pass
     except Exception as e:
-        print("Run task error:",e)
-
+        print("Run task error:", e)
 
 
 scheduler = BackgroundScheduler()
@@ -76,8 +83,6 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan, responses={404: {"description": "Not found"}})
-
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -93,6 +98,7 @@ app.include_router(events_router)
 app.include_router(areas_router)
 app.include_router(cameras_router)
 app.include_router(nvrs_router)
+app.include_router(status_router)
 
 app.mount("/frontend", StaticFiles(directory="frontend", html=True), name="frontend")
 
@@ -108,8 +114,3 @@ async def serve_react_app(request: Request, full_path: str):
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=config.serve_port)
-
-    # 启用proactor loop  websocket推流使用
-    # config = uvicorn.Config(app=app, host="0.0.0.0", port=config.serve_port, reload=False)
-    # server = ProactorServer(config=config)
-    # server.run()

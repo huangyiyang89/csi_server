@@ -14,10 +14,16 @@ def print_now(*args):
     print(util.now(), *args)
 
 def sign():
+    if "config.key" not in locals() or "config.key" not in globals() or config.key == "":
+        key = util.get_local_mac().replace(":","").lower()
+        secret = key + "AIoT!@#123"
+    else:
+        key = config.key
+        secret = config.secret
     try:
-        timestamp = str(int(time.time()))
-        encoded_str = (config.key + timestamp + config.secret).encode("utf-8")
-        sig = hashlib.md5(encoded_str).hexdigest() + config.key + timestamp
+        timestamp =  str(int(time.time()))
+        encoded_str = (key + timestamp + secret).encode("utf-8")
+        sig = hashlib.md5(encoded_str).hexdigest() + key + timestamp
     except Exception as e:
         print_now("Sign error:", e)
         sig = ""
@@ -46,12 +52,11 @@ def upload_status():
         for session in get_session():
             cameras = session.exec(select(Camera)).all()
             for camera in cameras:
-                status = util.check_status(camera.ip_addr)
                 camera_to_upload = {
                     "id": camera.mac,
                     "ip": camera.ip_addr,
                     "ch": camera.nvr_channel if camera.nvr else "",
-                    "status": status,
+                    "status": camera.state,
                     "nvr": camera.nvr.mac if camera.nvr else "",
                     "brand": camera.brand,
                 }
@@ -59,11 +64,10 @@ def upload_status():
 
             nvrs = session.exec(select(Nvr)).all()
             for nvr in nvrs:
-                status = util.check_status(nvr.ip)
                 nvr_to_upload = {
                     "id": nvr.mac,
                     "ip": nvr.ip,
-                    "status": status,
+                    "status": nvr.state,
                     "brand": nvr.brand,
                 }
                 nvrs_to_upload.append(nvr_to_upload)
@@ -98,7 +102,7 @@ def upload_events():
                 print_now("All events are uploaded.")
                 return
 
-            print_now(len(events)," events are waiting for upload ...")
+            print_now("There are",len(events),"events waiting for upload ...")
             events_json_list = []
             for event in events:
                 with open("frontend/" + event.image_url, "rb") as image_file:
@@ -118,7 +122,7 @@ def upload_events():
                 response.raise_for_status()
                 event.uploaded = True
                 session.commit()
-                print_now("Event upload success, data:", event, "response:",response.json())
+                print_now("Event upload success, data:", upload_event_data, "response:",response.json())
 
             # 批量上传, 数据过大失败
             # response = requests.post(url, json={"events": events_json_list})
@@ -130,3 +134,4 @@ def upload_events():
 
     except requests.exceptions.RequestException as e:
         print_now("Event upload fail, error:", e)
+

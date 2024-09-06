@@ -1,9 +1,12 @@
+from typing import Optional
+import requests
 from fastapi import APIRouter, status, HTTPException, Depends
+from fastapi.responses import RedirectResponse,StreamingResponse
 from sqlmodel import Session
-from database import get_session,select
+from database import get_session, select
 from models.camera import Camera, CameraCreate, CameraUpdate
 from models.schema import CameraWithDatas
-from models.event import Event
+from task import sign
 
 
 router = APIRouter(prefix="/api/cameras", tags=["cameras"])
@@ -65,8 +68,33 @@ async def get_cameras(
     for camera in cameras:
         camera_with_events = CameraWithDatas.model_validate(camera)
         camera_with_events.events = []
-        events = session.exec(select(Camera).where(Camera.id == camera.id)).first().events[:10]
+        events = (
+            session.exec(select(Camera).where(Camera.id == camera.id))
+            .first()
+            .events[:10]
+        )
         for event in events:
             camera_with_events.events.append(event)
         cameras_with_limit_events.append(camera_with_events)
+
     return cameras_with_limit_events
+
+
+@router.get("/{camera_id}/url")
+async def get_url(*, camera_id: int,time:Optional[str] = "",session: Session = Depends(get_session)):
+    camera = session.get_one(Camera, camera_id)
+    if not camera or not camera.nvr or not camera.nvr_channel:
+        raise HTTPException(status_code=404, detail="Camera not found or incomplete configuration")
+
+    try:
+        url = f"http://localhost:8080/video/api/pull?ip={camera.nvr.ip}&ch={camera.nvr_channel}&sign={sign()}&time={time}"
+        response = requests.get(url)
+        response.raise_for_status()
+        data:dict = response.json()
+        if data.get("code") != 200 or "flv" not in data.get("data", {}):
+            return RedirectResponse(url="/error.flv")
+
+        return RedirectResponse(url=data["data"]["flv"])
+    except Exception as e:
+        return RedirectResponse(url="/error.flv")
+    
