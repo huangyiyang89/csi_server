@@ -22,7 +22,6 @@ from routers.status import router as status_router
 def status_task():
     """10分钟执行一次"""
     from task import upload_status, upload_events
-
     upload_status()
     upload_events()
 
@@ -30,7 +29,6 @@ def status_task():
 def message_task():
     """10秒钟执行一次"""
     from task import get_tasks
-
     tasks = get_tasks()
 
     try:
@@ -68,19 +66,16 @@ def message_task():
     except Exception as e:
         print("Run task error:", e)
 
-
 scheduler = BackgroundScheduler()
 scheduler.add_job(status_task, "interval", seconds=600)
 scheduler.add_job(message_task, "interval", seconds=10)
 scheduler.start()
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
     yield
     scheduler.shutdown()
-
 
 app = FastAPI(lifespan=lifespan, responses={404: {"description": "Not found"}})
 app.add_middleware(
@@ -99,18 +94,7 @@ app.include_router(areas_router)
 app.include_router(cameras_router)
 app.include_router(nvrs_router)
 app.include_router(status_router)
-
-app.mount("/frontend", StaticFiles(directory="frontend", html=True), name="frontend")
-
-
-@app.get("/{full_path:path}")
-async def serve_react_app(request: Request, full_path: str):
-    static_files_dir = "frontend"
-    file_path = os.path.join(static_files_dir, full_path)
-    if os.path.exists(file_path) and os.path.isfile(file_path):
-        return FileResponse(file_path)
-    return FileResponse(os.path.join(static_files_dir, "index.html"))
-
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=config.serve_port)

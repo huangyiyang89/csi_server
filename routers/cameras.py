@@ -1,5 +1,7 @@
 from typing import Optional
 import requests
+import util
+import httpx
 from fastapi import APIRouter, status, HTTPException, Depends
 from fastapi.responses import RedirectResponse,StreamingResponse
 from sqlmodel import Session
@@ -7,7 +9,7 @@ from database import get_session, select
 from models.camera import Camera, CameraCreate, CameraUpdate
 from models.schema import CameraWithDatas
 from task import sign
-
+import time
 
 router = APIRouter(prefix="/api/cameras", tags=["cameras"])
 
@@ -82,19 +84,23 @@ async def get_cameras(
 
 @router.get("/{camera_id}/url")
 async def get_url(*, camera_id: int,time:Optional[str] = "",session: Session = Depends(get_session)):
+
+    status = await util.check_status("127.0.0.1",8080)
+    if not status:
+        return RedirectResponse(url="/error.flv")
+
     camera = session.get_one(Camera, camera_id)
     if not camera or not camera.nvr or not camera.nvr_channel:
         raise HTTPException(status_code=404, detail="Camera not found or incomplete configuration")
-
+    
     try:
         url = f"http://localhost:8080/video/api/pull?ip={camera.nvr.ip}&ch={camera.nvr_channel}&sign={sign()}&time={time}"
-        response = requests.get(url)
+        response = requests.get(url,timeout=0.2)
         response.raise_for_status()
         data:dict = response.json()
         if data.get("code") != 200 or "flv" not in data.get("data", {}):
             return RedirectResponse(url="/error.flv")
-
         return RedirectResponse(url=data["data"]["flv"])
+    
     except Exception as e:
         return RedirectResponse(url="/error.flv")
-    
